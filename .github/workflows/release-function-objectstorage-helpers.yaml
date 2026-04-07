@@ -1,0 +1,80 @@
+name: Release function-objectstorage-helpers
+
+on:
+  push:
+    tags:
+      # Trigger on tags like: v0.1.0
+      - "v*"
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci-function-objectstorage-helpers.yaml
+
+  release:
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # create GitHub Release
+      packages: write       # push to ghcr.io
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Set up ko
+        uses: ko-build/setup-ko@v0.9
+
+      - name: Install Crossplane CLI
+        run: |
+          curl -sL https://raw.githubusercontent.com/crossplane/crossplane/master/install.sh | sh
+          sudo mv crossplane /usr/local/bin/crossplane
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push runtime image
+        run: |
+          IMAGE=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          KO_DOCKER_REPO="${IMAGE}" \
+          ko build --platform=linux/amd64,linux/arm64 \
+            --tags=runtime-${{ github.ref_name }} \
+            --bare \
+            --push \
+            .
+
+      - name: Build and push xpkg
+        run: |
+          IMAGE=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          docker pull ${IMAGE}:runtime-${{ github.ref_name }}
+          crossplane xpkg build \
+            --package-root=package \
+            --embed-runtime-image=${IMAGE}:runtime-${{ github.ref_name }} \
+            --package-file=function.xpkg
+          crossplane xpkg push --package-files=function.xpkg ${IMAGE}:${{ github.ref_name }}
+          crossplane xpkg push --package-files=function.xpkg ${IMAGE}:latest
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "${{ github.event.repository.name }} ${{ github.ref_name }}"
+          body: |
+            ## ${{ github.event.repository.name }} ${{ github.ref_name }}
+
+            **Image:** `ghcr.io/${{ github.repository }}:${{ github.ref_name }}`
+
+            ### Usage
+            Reference this version in your Crossplane Function manifest:
+            ```yaml
+            spec:
+              package: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ```

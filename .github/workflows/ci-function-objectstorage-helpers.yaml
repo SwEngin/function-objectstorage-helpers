@@ -1,0 +1,27 @@
+name: CI function-objectstorage-helpers
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  # Allow the release workflow to call this as a reusable workflow
+  workflow_call:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Run tests
+        run: go test -v -count=1 -race ./...

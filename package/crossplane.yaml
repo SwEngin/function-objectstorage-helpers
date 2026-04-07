@@ -1,0 +1,12 @@
+apiVersion: meta.pkg.crossplane.io/v1beta1
+kind: Function
+metadata:
+  name: function-objectstorage-helpers
+  annotations:
+    meta.crossplane.io/maintainer: swengin.io
+    meta.crossplane.io/source: https://github.com/swengin/function-objectstorage-helpers
+    meta.crossplane.io/description: |
+      Computes derived values (saExtName, gate conditions) from the observed XR
+      and writes them to the pipeline context for downstream template steps.
+      Used by both objectstorage-azure and objectstorage-ceph compositions.
+spec: {}
