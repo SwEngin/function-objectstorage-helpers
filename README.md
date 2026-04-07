@@ -55,7 +55,6 @@ The binding might use `system:serviceaccounts:crossplane-system` as the subject 
 | API Group | Resource | Verb | Purpose |
 |-----------|----------|------|---------|
 | `azure.m.upbound.io` | `clusterproviderconfigs` | `get` | Check Azure provider is configured |
-| `kubernetes.m.crossplane.io` | `clusterproviderconfigs` | `get` | Check Kubernetes provider is configured |
 | `ceph.rook.io` | `cephclusters` | `list` | Read CephCluster health status |
 
 > **Note:** Without this RBAC, `rookReady`, `azureProviderExists`, and `kubernetesProviderExists` will silently return `false`, causing compositions to emit no resources.
